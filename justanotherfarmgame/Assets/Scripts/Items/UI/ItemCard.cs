@@ -101,8 +101,6 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
 
     public void OnPointerDown(PointerEventData eventData) {
-        if (eventData.button == PointerEventData.InputButton.Middle) return;
-
         if (_selectedCard == null) {
             if (eventData.button == PointerEventData.InputButton.Left || ItemInstance.Quantity == 1) {
                 _selectedCard = this;
@@ -116,6 +114,20 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
 
                 var newCard = GameObject.Instantiate(this);
                 var newItem = new ItemInstance(ItemInstance.Item, 1);
+                newCard.Set(newItem);
+
+                _selectedCard = newCard;
+                newCard._previousSlot = _previousSlot;
+                return;
+            }
+
+            if(eventData.button == PointerEventData.InputButton.Middle) {
+                var half = ItemInstance.Quantity / 2;
+                ItemInstance.Quantity -= half;
+                UpdateQuanitity();
+
+                var newCard = GameObject.Instantiate(this);
+                var newItem = new ItemInstance(ItemInstance.Item, half);
                 newCard.Set(newItem);
 
                 _selectedCard = newCard;
@@ -146,12 +158,24 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
             return;
         }
 
-        if(eventData.button == PointerEventData.InputButton.Right) {
+        if (eventData.button == PointerEventData.InputButton.Right) {
             ItemInstance.Quantity--;
             UpdateQuanitity();
 
             var newCard = GameObject.Instantiate(this);
             var newItem = new ItemInstance(ItemInstance.Item, 1);
+            newCard.Set(newItem);
+            newCard.SetToSlot(closestSlot);
+            return;
+        }
+
+        if (eventData.button == PointerEventData.InputButton.Middle) {
+            var half = ItemInstance.Quantity / 2;
+            ItemInstance.Quantity -= half;
+            UpdateQuanitity();
+
+            var newCard = GameObject.Instantiate(this);
+            var newItem = new ItemInstance(ItemInstance.Item, half);
             newCard.Set(newItem);
             newCard.SetToSlot(closestSlot);
             return;

@@ -42,6 +42,5 @@ public class ItemDatabaseDisplay : MonoBehaviour {
         var itemCard = GameObject.Instantiate(_itemCardPrefab);
         itemCard.Set(item);
         itemCard.SetToSlot(slot);
-
     }
 }
