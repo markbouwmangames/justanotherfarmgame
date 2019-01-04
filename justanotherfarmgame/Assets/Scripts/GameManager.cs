@@ -12,7 +12,12 @@ public class GameManager : MonoBehaviour {
         }
     }
 
-    [Header("Managers")]
+    [Header("Input")]
     public InputManager InputManager;
+
+    [Header("Tiles")]
     public TileManager TileManager;
+
+    [Header("Item Database")]
+    public ItemDatabase ItemDatabase;
 }

@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 
 public class Player : Character {
-
     protected override void Update() {
         GetInput();
         base.Update();

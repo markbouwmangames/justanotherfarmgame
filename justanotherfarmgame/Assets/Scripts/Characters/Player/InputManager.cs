@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
 
 public class InputManager : MonoBehaviour {
+    [HideInInspector]
     public float HorizontalMovement;
+    [HideInInspector]
     public float VerticalMovement;
 
     private void Update() {

@@ -1,11 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Tilemaps;
+﻿using UnityEngine;
 
 public class TileTest : MonoBehaviour {
     private void Update() {
-        if (Input.GetMouseButtonDown(0)) {
+        if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1)) {
             var point = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             var worldPoint = new Vector3Int(Mathf.FloorToInt(point.x), Mathf.FloorToInt(point.y), 0);
 
@@ -13,8 +10,13 @@ public class TileTest : MonoBehaviour {
             WorldTile tile = null;
 
             if (tiles.TryGetValue(worldPoint, out tile)) {
-                tile.Tilemap.SetTileFlags(tile.LocalPos, TileFlags.None);
-                tile.Tilemap.SetColor(tile.LocalPos, Color.green);
+
+                if(Input.GetMouseButtonDown(0)) {
+                    tile.Plow();
+                } 
+                if(Input.GetMouseButtonDown(1)) {
+                    tile.Water();
+                }
             }
         }
     }
