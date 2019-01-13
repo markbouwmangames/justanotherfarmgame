@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class ItemSlot : MonoBehaviour {
     public Action<ItemSlot> OnItemSlotUpdated;
+    public InventoryDisplay ParentItemSlotDisplay;
 
     public ItemCard ItemCard {
         get {
@@ -15,4 +16,8 @@ public class ItemSlot : MonoBehaviour {
     }
 
     private ItemCard _currentItemCard;
+
+    public void SetParentItemSlotDisplay(InventoryDisplay itemSlotDisplay) {
+        ParentItemSlotDisplay = itemSlotDisplay;
+    }
 }

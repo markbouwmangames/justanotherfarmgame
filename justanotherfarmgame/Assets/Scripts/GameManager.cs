@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour {
     }
 
     [Header("Input")]
-    public InputManager InputManager;
+    public PlayerInputManager PlayerInputManager;
 
     [Header("Tiles")]
     public TileManager TileManager;

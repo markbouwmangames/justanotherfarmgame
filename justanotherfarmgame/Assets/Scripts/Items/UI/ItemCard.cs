@@ -16,7 +16,9 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     private ItemSlot _previousSlot;
 
     private static RectTransform _itemCardCanvas;
-    private static ItemCard _selectedCard;
+    public static ItemCard SelectedCard;
+
+    private PlayerInputManager _inputManager;
 
     private void Awake() {
         if(_itemCardCanvas == null) {
@@ -31,6 +33,8 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         _quantityTextfield.text = "";
 
         transform.SetParent(_itemCardCanvas, true);
+
+        _inputManager = GameManager.Instance.PlayerInputManager;
     }
 
     public void Set(ItemInstance itemInstance) {
@@ -44,12 +48,16 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         _quantityTextfield.text = ItemInstance.Quantity == 1 ? "" : ItemInstance.Quantity.ToString();
     }
     
+    public void SetSelected() {
+        SelectedCard = this;
+    }
+
     private void Update() {
-        if (_selectedCard != this && _isMoving == false) {
+        if (SelectedCard != this && _isMoving == false) {
             transform.position = _previousSlot.transform.position;
-        } else if (_selectedCard == this) {
+        } else if (SelectedCard == this) {
             transform.SetAsLastSibling();
-            transform.position = (Vector3)(Input.mousePosition);
+            transform.position = _inputManager.CursorPosition;
         }
     }
 
@@ -101,9 +109,9 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
     }
 
     public void OnPointerDown(PointerEventData eventData) {
-        if (_selectedCard == null) {
+        if (SelectedCard == null) {
             if (eventData.button == PointerEventData.InputButton.Left || ItemInstance.Quantity == 1) {
-                _selectedCard = this;
+                SelectedCard = this;
                 _previousSlot.ItemCard = null;
                 return;
             }
@@ -116,7 +124,7 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 var newItem = new ItemInstance(ItemInstance.Item, 1);
                 newCard.Set(newItem);
 
-                _selectedCard = newCard;
+                SelectedCard = newCard;
                 newCard._previousSlot = _previousSlot;
                 return;
             }
@@ -130,35 +138,77 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
                 var newItem = new ItemInstance(ItemInstance.Item, half);
                 newCard.Set(newItem);
 
-                _selectedCard = newCard;
+                SelectedCard = newCard;
                 newCard._previousSlot = _previousSlot;
                 return;
             }
         }
 
-        if (_selectedCard != this) {
+        if (SelectedCard != this) {
             return;
         }
 
         var closestSlot = FindClosestSlot();
         if (closestSlot == null) {
-            if(_previousSlot == null) {
-                return;
-            }
-
-            SetToSlot(_previousSlot);
-            AnimateTo(_previousSlot.transform.position);
-            _selectedCard = null;
+            SetBack();
             return;
         }
 
         if (eventData.button == PointerEventData.InputButton.Left || ItemInstance.Quantity == 1) {
-            SetToSlot(closestSlot);
-            _selectedCard = null;
+            if (closestSlot.ItemCard != null && closestSlot.ItemCard.ItemInstance.Id.Equals(ItemInstance.Id) == false) {
+                var newCard = closestSlot.ItemCard;
+                closestSlot.ItemCard = null;
+                SetToSlot(closestSlot);
+                SelectedCard = newCard;
+
+                return;
+            }
+
+            if(closestSlot.ItemCard == null) {
+                SetToSlot(closestSlot);
+                SelectedCard = null;
+                return;
+            }
+
+            var itemInstance = closestSlot.ItemCard.ItemInstance;
+            var quantity = itemInstance.Quantity;
+            var maxRemaining = itemInstance.Item.MaxStackSize - quantity;
+
+            if (this.ItemInstance.Quantity <= maxRemaining) {
+                SetToSlot(closestSlot);
+                SelectedCard = null;
+            } else {
+                if(maxRemaining == 0) {
+                    closestSlot.ItemCard.ItemInstance.Quantity = this.ItemInstance.Quantity;
+                    closestSlot.ItemCard.UpdateQuanitity();
+
+                    this.ItemInstance.Quantity = ItemInstance.Item.MaxStackSize;
+                    UpdateQuanitity();
+                } else {
+                    ItemInstance.Quantity -= maxRemaining;
+                    UpdateQuanitity();
+
+                    var newCard = GameObject.Instantiate(this);
+                    var newItem = new ItemInstance(ItemInstance.Item, maxRemaining);
+                    newCard.Set(newItem);
+                    newCard.SetToSlot(closestSlot);
+                }
+            }
+
             return;
         }
 
         if (eventData.button == PointerEventData.InputButton.Right) {
+            if (closestSlot.ItemCard != null && closestSlot.ItemCard.ItemInstance.Id.Equals(ItemInstance.Id) == false) {
+                return;
+            }
+
+            if(closestSlot.ItemCard != null) {
+                var itemInstance = closestSlot.ItemCard.ItemInstance;
+                var quantity = itemInstance.Quantity;
+                if (quantity == itemInstance.Item.MaxStackSize) return;
+            }
+
             ItemInstance.Quantity--;
             UpdateQuanitity();
 
@@ -170,15 +220,49 @@ public class ItemCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDrag
         }
 
         if (eventData.button == PointerEventData.InputButton.Middle) {
-            var half = ItemInstance.Quantity / 2;
-            ItemInstance.Quantity -= half;
+            if (closestSlot.ItemCard != null && closestSlot.ItemCard.ItemInstance.Id.Equals(ItemInstance.Id) == false) {
+                return;
+            }
+
+            var halfToRemove = ItemInstance.Quantity / 2;
+
+            if (closestSlot.ItemCard != null) {
+                var itemInstance = closestSlot.ItemCard.ItemInstance;
+                var quantity = itemInstance.Quantity;
+                var maxRemaining = itemInstance.Item.MaxStackSize - quantity;
+
+                if (halfToRemove > maxRemaining) {
+                    halfToRemove = maxRemaining;
+                }
+            }
+
+            ItemInstance.Quantity -= halfToRemove;
             UpdateQuanitity();
 
             var newCard = GameObject.Instantiate(this);
-            var newItem = new ItemInstance(ItemInstance.Item, half);
+            var newItem = new ItemInstance(ItemInstance.Item, halfToRemove);
             newCard.Set(newItem);
             newCard.SetToSlot(closestSlot);
             return;
+        }
+    }
+
+    public void SetBack() {
+        if (_previousSlot == null) {
+            Debug.LogError("No previous slot found for item.");
+            return;
+        }
+
+        if (_previousSlot.ItemCard != null && _previousSlot.ItemCard.ItemInstance.Id.Equals(ItemInstance.Id) == false) {
+            var parent = _previousSlot.ParentItemSlotDisplay;
+            var firstOpenSlot = parent.GetFirstOpenSlot();
+            SetToSlot(firstOpenSlot);
+            AnimateTo(firstOpenSlot.transform.position);
+            SelectedCard = null;
+        } else {
+            SetToSlot(_previousSlot);
+            AnimateTo(_previousSlot.transform.position);
+            SelectedCard = null;
         }
     }
 

@@ -7,7 +7,7 @@ public class Player : Character {
     }
 
     private void GetInput() {
-        var inputManager = GameManager.Instance.InputManager;
+        var inputManager = GameManager.Instance.PlayerInputManager;
 
         var horizontal = inputManager.HorizontalMovement;
         var vertical = inputManager.VerticalMovement;
